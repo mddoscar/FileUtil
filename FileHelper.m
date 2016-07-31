@@ -9,7 +9,9 @@
 #import "FileHelper.h"
 
 
-
+//
+#define kYes @"Y" //是
+#define kNo @"N" //非
 @implementation FileHelper
 
 
@@ -125,6 +127,31 @@
     NSString *testPath = [testDirectory stringByAppendingPathComponent:pFileShortName];
     NSString *content=[NSString stringWithContentsOfFile:testPath encoding:NSUTF8StringEncoding error:nil];
 //    NSLog(@"文件读取成功: %@",content);
+    return content;
+}
+//写文本到文件
+-(BOOL)writeFileFullPath:pFilePath contentString:(NSString *)pContentString
+{
+    NSError * err;
+    BOOL res=[pContentString writeToFile:pFilePath atomically:YES encoding:NSUTF8StringEncoding error:&err];
+    if (res) {
+        NSLog(@"文件写入成功");
+    }else {
+        NSLog(@"文件写入失败,%@",err);
+    //21
+        //如果编码
+        if (err.code==21) {
+            //删除文件夹
+            [self deleteFileWithFullPath:pFilePath];
+        }
+    }
+    return  res;
+
+}
+//读取文件
+-(NSString *) readFileFullPath:pFilePath
+{
+    NSString *content=[NSString stringWithContentsOfFile:pFilePath encoding:NSUTF8StringEncoding error:nil];
     return content;
 }
 //获取文件属性
@@ -476,6 +503,210 @@
     return  result;
 
 }
+
+#pragma  mark 搜索方法
+//在路径下搜索扩展名(扩展名（txt），目标文件夹，是否需要子文件夹)
+-(NSMutableArray *) searchFileWithExt:(NSString *) pExtStr forDir:(NSString *) pDir hasChild:(BOOL )pHasChild
+{
+    NSMutableArray * rArr=[NSMutableArray array];
+    NSString * pDesdirPrix=[self dirDoc];
+    NSFileManager * tFileManager=[NSFileManager defaultManager];
+    NSError * error;
+    //    NSArray * subFilePathsInfo=[tFileManager subpathsAtPath:[pSrcDirPrix stringByAppendingPathComponent:pSrcdir]];
+    NSArray * subFileInfo=[tFileManager subpathsOfDirectoryAtPath:[pDesdirPrix stringByAppendingPathComponent:pDir]  error:&error];
+    //    NSArray *files = [tFileManager subpathsAtPath:[pDesdirPrix stringByAppendingPathComponent:pDir] ];
+    if (pHasChild) {
+        for (NSString * fileItem in subFileInfo) {
+            //需要 根目录
+            NSMutableDictionary * tFileInfo=[self expectPathStr:fileItem];
+            //创建陌路(不为空并且，不是路径)
+            if ([kNo isEqualToString:tFileInfo[kMddFileIsPath]]&&[kNo isEqualToString:tFileInfo[kMddFileEmpty]]) {
+               if([tFileInfo[kMddFileExt] isEqualToString:pExtStr])
+               {
+                   [rArr addObject:fileItem];
+
+               }
+                
+            }
+            
+        }
+        //当前目录
+    }else{
+        for (NSString * fileItem in subFileInfo) {
+            //需要 根目录
+            NSMutableDictionary * tFileInfo=[self expectPathStr:fileItem];
+            //创建陌路(不为空并且，不是路径)
+            if ([kNo isEqualToString:tFileInfo[kMddFileIsPath]]&&[kNo isEqualToString:tFileInfo[kMddFileEmpty]]) {
+                //0个文件夹的
+                if ([@"0" isEqualToString:tFileInfo[kMddFilePathCount]]) {
+                    if([tFileInfo[kMddFileExt] isEqualToString:pExtStr])
+                    {
+                        [rArr addObject:fileItem];
+                        
+                    }
+                }
+            }
+            
+        }
+    }
+    return rArr;
+}
+//在路径下搜索扩展名(文件名，目标文件夹，是否需要子文件夹)
+-(NSMutableArray *) searchFileWithFileName:(NSString *) pFileName forDir:(NSString *) pDir hasChild:(BOOL )pHasChild
+{
+    NSMutableArray * rArr=[NSMutableArray array];
+    NSString * pDesdirPrix=[self dirDoc];
+    NSFileManager * tFileManager=[NSFileManager defaultManager];
+    NSError * error;
+    //    NSArray * subFilePathsInfo=[tFileManager subpathsAtPath:[pSrcDirPrix stringByAppendingPathComponent:pSrcdir]];
+    NSArray * subFileInfo=[tFileManager subpathsOfDirectoryAtPath:[pDesdirPrix stringByAppendingPathComponent:pDir]  error:&error];
+//    NSArray *files = [tFileManager subpathsAtPath:[pDesdirPrix stringByAppendingPathComponent:pDir] ];
+    if (pHasChild) {
+        for (NSString * fileItem in subFileInfo) {
+            //需要 根目录
+            NSMutableDictionary * tFileInfo=[self expectPathStr:fileItem];
+            //创建陌路(不为空并且，不是路径)
+            if ([kNo isEqualToString:tFileInfo[kMddFileIsPath]]&&[kNo isEqualToString:tFileInfo[kMddFileEmpty]]) {
+                //全部文件
+                if([@"*" isEqualToString:pFileName])
+                {
+                    [rArr addObject:fileItem];
+                    //名字包含
+                }else{
+                    NSRange range;
+                    
+                    range=[fileItem rangeOfString:pFileName];
+                    if (range.location!=NSNotFound)
+                    {
+                        
+                        //带点
+                        if (range.location>0) {
+                            [rArr addObject:fileItem];
+                        }
+                    }
+                }
+            }
+            
+        }
+    //当前目录
+    }else{
+        for (NSString * fileItem in subFileInfo) {
+            //需要 根目录
+            NSMutableDictionary * tFileInfo=[self expectPathStr:fileItem];
+            //创建陌路(不为空并且，不是路径)
+             if ([kNo isEqualToString:tFileInfo[kMddFileIsPath]]&&[kNo isEqualToString:tFileInfo[kMddFileEmpty]]) {
+                 //0个文件夹的
+                 if ([@"0" isEqualToString:tFileInfo[kMddFilePathCount]]) {
+                     //全部文件
+                     if([@"*" isEqualToString:pFileName])
+                     {
+                         [rArr addObject:fileItem];
+                         //名字包含
+                     }else{
+                         NSRange range;
+                         
+                         range=[fileItem rangeOfString:pFileName];
+                         if (range.location!=NSNotFound)
+                         {
+                             //带点
+                             if (range.location>0) {
+                                 [rArr addObject:fileItem];
+                             }
+                         }
+                     }
+                 }
+            }
+            
+        }
+    }
+    return rArr;
+}
+
+-(NSMutableDictionary *) expectPathStr:(NSString *)pPathStr{
+    NSMutableDictionary * rDic=[NSMutableDictionary dictionary];
+    rDic[kMddFileRoot]=@"";
+    rDic[kMddFileName]=@"";
+    rDic[kMddFileExt]=@"";
+    rDic[kMddFileIsPath]=kNo;
+    rDic[kMddFileEmpty]=kYes;
+    rDic[kMddFileRawPath]=@"";
+    rDic[kMddFilePathCount]=@"0";
+    
+    //非空
+    if(nil!=pPathStr&&(![@"" isEqualToString:pPathStr]))
+    {
+        //检索字符串
+         rDic[kMddFileRawPath]=pPathStr;
+        
+        NSRange range;
+        
+        range=[pPathStr rangeOfString:@"."];
+        
+        if (range.location!=NSNotFound)
+        {
+            
+            //带点
+            if (range.location>0) {
+                    rDic[kMddFileIsPath]=kNo;
+                    rDic[kMddFileEmpty]=kNo;
+                NSArray *array = [pPathStr componentsSeparatedByString:@"/"];
+                rDic[kMddFileRoot]=array[0];
+                rDic[kMddFileName]=array[[array count]-1];
+                rDic[kMddFilePathCount]=[NSString stringWithFormat:@"%lu",[array count]-1];
+                //后缀名
+                 NSArray *arrayExt = [pPathStr componentsSeparatedByString:@"."];
+                rDic[kMddFileExt]=arrayExt[[arrayExt count]-1];
+            //不带点
+            }else{
+                    rDic[kMddFileName]=@"";
+                    rDic[kMddFileExt]=@"";
+                    rDic[kMddFileIsPath]=kYes;
+                    rDic[kMddFileEmpty]=kNo;
+            }
+            //得到字符串的位置和长度
+            
+//            NSLog(@"%d,%d",range.location,range.length);
+        //不带点
+        }else{
+            rDic[kMddFileName]=@"";
+            rDic[kMddFileExt]=@"";
+            rDic[kMddFileIsPath]=kYes;
+            rDic[kMddFileEmpty]=kNo;
+        }
+        //不带点
+        if ([kYes isEqualToString:rDic[kMddFileIsPath]]) {
+            NSArray *array = [pPathStr componentsSeparatedByString:@"/"];
+            rDic[kMddFileRoot]=array[0];
+            rDic[kMddFilePathCount]=[NSString stringWithFormat:@"%lu",[array count]-1];
+        }
+        
+    }else{
+        rDic[kMddFileEmpty]=kYes;
+    }
+    
+    return rDic;
+}
+-(NSMutableArray *) searchFileListforDir:(NSString *) pDir
+{
+    NSFileManager *fileman = [NSFileManager defaultManager];
+    NSString *docdir = [self dirDoc:pDir];//[NSString stringWithFormat: @"%@/Documents", NSHomeDirectory()];
+    NSMutableArray *outfiles = [[NSMutableArray alloc] init];
+    NSDirectoryEnumerator *direnum = [fileman enumeratorAtPath:docdir];
+    NSString *file;
+    BOOL isdir;
+    while (file = [direnum nextObject]) {
+        NSString *filepath = [docdir stringByAppendingPathComponent:file];
+        if ([fileman fileExistsAtPath:filepath isDirectory:&isdir] && !isdir) {
+            //本身是根目录
+            if ([@"" isEqualToString:pDir]) {
+                 [outfiles addObject:file];
+            }else{
+                [outfiles addObject:[NSString stringWithFormat:@"%@/%@",pDir,file]];
+            }
+        }
+    }
+    return outfiles;
+}
 //全文件夹拷贝
 -(BOOL) CopyDirectory:(NSString *) pSrcdir desdir:(NSString*) pDesdir
 {
@@ -521,6 +752,12 @@
 }
 
 #pragma mark others
++(NSString*)GetCurrentLongTimeString
+{
+    NSDateFormatter *dateformat = [[NSDateFormatter  alloc]init];
+    [dateformat setDateFormat:@"yyyy-MM-dd HH:mm:ss:fff"];//添加毫秒
+    return [dateformat stringFromDate:[NSDate date]];
+}
 -(NSString*)GetCurrentTimeString{
     NSDateFormatter *dateformat = [[NSDateFormatter  alloc]init];
     [dateformat setDateFormat:@"yyyyMMddHHmmssfff"];//添加毫秒
@@ -547,6 +784,105 @@
     return pFilePath;
     
 }
+-(NSString *)getDayString:(int)dayDelay{
+    //    NSString *weekDay;
+    NSDate *dateNow;
+    dateNow=[NSDate dateWithTimeIntervalSinceNow:dayDelay*24*60*60];//dayDelay代表向后推几天，如果是0则代表是今天，如果是1就代表向后推24小时，如果想向后推12小时，就可以改成dayDelay*12*60*60,让dayDelay＝1
+    NSCalendar *calendar = [[NSCalendar alloc] initWithCalendarIdentifier:NSGregorianCalendar];//设置成中国阳历
+    NSDateComponents *comps = [[NSDateComponents alloc] init];
+    NSInteger unitFlags = NSYearCalendarUnit | NSMonthCalendarUnit | NSDayCalendarUnit | NSWeekdayCalendarUnit | NSHourCalendarUnit | NSMinuteCalendarUnit | NSSecondCalendarUnit;//这句我也不明白具体时用来做什么。。。
+    comps = [calendar components:unitFlags fromDate:dateNow];
+    //    long weekNumber = [comps weekday]; //获取星期对应的长整形字符串
+    long day=[comps day];//获取日期对应的长整形字符串
+    long year=[comps year];//获取年对应的长整形字符串
+    long month=[comps month];//获取月对应的长整形字符串
+    //    long hour=[comps hour];//获取小时对应的长整形字符串
+    //    long minute=[comps minute];//获取月对应的长整形字符串
+    //    long second=[comps second];//获取秒对应的长整形字符串
+    //    NSString *riQi =[NSString stringWithFormat:@"%ld日",day];//把日期长整形转成对应的汉字字符串
+    //    switch (weekNumber) {
+    //        case 1:
+    //            weekDay=@"星期日";
+    //            break;
+    //        case 2:
+    //            weekDay=@"星期一";
+    //            break;
+    //        case 3:
+    //            weekDay=@"星期二";
+    //            break;
+    //        case 4:
+    //            weekDay=@"星期三";
+    //            break;
+    //        case 5:
+    //            weekDay=@"星期四";
+    //            break;
+    //        case 6:
+    //            weekDay=@"星期五";
+    //            break;
+    //        case 7:
+    //            weekDay=@"星期六";
+    //            break;
+    //
+    //        default:
+    //            break;
+    //    }
+    //    weekDay=[riQi stringByAppendingString:weekDay];//这里我本身的程序里只需要日期和星期，所以上面的年月时分秒都没有用上
+    return [NSString stringWithFormat:@"%ld-%ld-%ld",year,month,day];
+}
+
+- (NSString *)intervalFromLastDate: (NSString *) dateString1  toTheDate:(NSString *) dateString2
+{
+    NSArray *timeArray1=[dateString1 componentsSeparatedByString:@"."];
+    dateString1=[timeArray1 objectAtIndex:0];
+    
+    
+    NSArray *timeArray2=[dateString2 componentsSeparatedByString:@"."];
+    dateString2=[timeArray2 objectAtIndex:0];
+    
+    NSLog(@"%@.....%@",dateString1,dateString2);
+    NSDateFormatter *date=[[NSDateFormatter alloc] init];
+    [date setDateFormat:@"yyyy-MM-dd HH:mm:ss"];
+    
+    
+    NSDate *d1=[date dateFromString:dateString1];
+    
+    NSTimeInterval late1=[d1 timeIntervalSince1970]*1;
+    
+    
+    
+    NSDate *d2=[date dateFromString:dateString2];
+    
+    NSTimeInterval late2=[d2 timeIntervalSince1970]*1;
+    
+    
+    
+    NSTimeInterval cha=late2-late1;
+    NSString *timeString=@"";
+    NSString *house=@"";
+    NSString *min=@"";
+    NSString *sen=@"";
+    
+    sen = [NSString stringWithFormat:@"%d", (int)cha%60];
+    //        min = [min substringToIndex:min.length-7];
+    //    秒
+    sen=[NSString stringWithFormat:@"%@", sen];
+    
+    
+    
+    min = [NSString stringWithFormat:@"%d", (int)cha/60%60];
+    //        min = [min substringToIndex:min.length-7];
+    //    分
+    min=[NSString stringWithFormat:@"%@", min];
+    
+    
+    //    小时
+    house = [NSString stringWithFormat:@"%d", (int)cha/3600];
+    //        house = [house substringToIndex:house.length-7];
+    house=[NSString stringWithFormat:@"%@", house];
+    timeString=[NSString stringWithFormat:@"%@:%@:%@",house,min,sen];
+    return timeString;
+}
+
 /*
  C#
  //复制文件夹

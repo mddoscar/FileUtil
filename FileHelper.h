@@ -12,6 +12,22 @@
 //上传
 #import "UploadFile.h"
 
+#ifndef mddhelper_FileHelper_h
+#define mddhelper_FileHelper_h
+    //文件
+    #define  kMddFileRoot @"FileRoot" //文件根目录
+    #define  kMddFileName @"FileName" //文件名
+    #define  kMddFileExt @"FileExt" //文件扩展名
+    #define  kMddFileIsPath @"FileIsPath" //文件是否是目录
+    #define  kMddFileEmpty @"FileEmpty" //文件是否是空
+    #define  kMddFilePathCount @"FilePathCount" //文件层数（/个数）
+    #define  kMddFileRawPath @"FileRawPath" //文件原始字符串
+    //其它
+    #define  kMddFileSize @"FileSize" //文件大小
+    #define  kMddFileModiTime @"FileModiTime" //修改时间
+    #define  kMddFileTypePic @"FileTypePic" //文件图片
+#endif
+
 //文件操作工具类
 @interface FileHelper : NSObject
 
@@ -33,6 +49,10 @@
 -(BOOL)writeFile:(NSString *)pFileShortName folderName:(NSString *)pFolderName contentString:(NSString *)pContentString;
 //读取文件
 -(NSString *) readFile:(NSString *)pFileShortName folderName:(NSString *)pFolderName;
+//写文本到文件
+-(BOOL)writeFileFullPath:pFilePath contentString:(NSString *)pContentString;
+//读取文件
+-(NSString *) readFileFullPath:pFilePath;
 //获取文件属性
 -(NSDictionary *) getfileAttriutes:(NSString *)pFileShortName folderName:(NSString *)pFolderName;
 //删除文件
@@ -84,6 +104,14 @@
 -(BOOL) moveDirToDocumentFrom:(NSString *)pFrom ToFolder:(NSString *)pToFolder;
 //从项目资源文件夹迁移
 -(BOOL) moveProjectFolderToDocumentFrom:(NSString *)pFromFolder ToFolder:(NSString *)pToFolder;
+#pragma  mark 搜索方法
+//在路径下搜索扩展名(扩展名（txt），目标文件夹，是否需要子文件夹)
+-(NSMutableArray *) searchFileWithExt:(NSString *) pExtStr forDir:(NSString *) pDir hasChild:(BOOL )pHasChild;
+//在路径下搜索扩展名(文件名，目标文件夹，是否需要子文件夹)
+-(NSMutableArray *) searchFileWithFileName:(NSString *) pFileName forDir:(NSString *) pDir hasChild:(BOOL )pHasChild;
+//寻找一个文件夹下所有文件
+-(NSMutableArray *) searchFileListforDir:(NSString *) pDir;
+-(NSMutableDictionary *) expectPathStr:(NSString *)pPathStr;
 
 //拷贝整个文件夹（源路径，目标路径，源路径前缀）
 -(BOOL) CopyDirectory:(NSString *) pSrcdir desdir:(NSString*) pDesdir ;
@@ -91,8 +119,13 @@
 -(BOOL) CopyDirectory:(NSString *) pSrcdir desdir:(NSString*) pDesdir fileManager:(NSFileManager *)pFileManager;
 #pragma mark others
 //获取系统当前时间
++(NSString*)GetCurrentLongTimeString;
 -(NSString*)GetCurrentTimeString;
 -(NSString*)GetCurrentLongTimeString;
 -(NSString*)GetDateTimeString;
+//获取年月日
+-(NSString *)getDayString:(int)dayDelay;
+//时间差
+-(NSString *)intervalFromLastDate: (NSString *) dateString1  toTheDate:(NSString *) dateString2;
 
 @end
