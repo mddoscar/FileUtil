@@ -49,10 +49,17 @@
 -(BOOL)writeFile:(NSString *)pFileShortName folderName:(NSString *)pFolderName contentString:(NSString *)pContentString;
 //读取文件
 -(NSString *) readFile:(NSString *)pFileShortName folderName:(NSString *)pFolderName;
+//获取文件大小
+-(long long) fileSizeAtPath:(NSString*) fileFullPath;
 //写文本到文件
 -(BOOL)writeFileFullPath:pFilePath contentString:(NSString *)pContentString;
 //读取文件
--(NSString *) readFileFullPath:pFilePath;
+-(NSString *) readFileFullPath:(NSString *)pFilePath;
+-(NSString *) readFileFullPath:(NSString *)pFilePath encoding:(NSStringEncoding) pEncoding;
+-(NSString *) readFileFullPath:(NSString *)pFilePath usedencoding:(NSStringEncoding) pEncoding;
+//特殊编码处理
+- (NSData *)replaceNoUtf8:(NSData *)data;
+
 //获取文件属性
 -(NSDictionary *) getfileAttriutes:(NSString *)pFileShortName folderName:(NSString *)pFolderName;
 //删除文件
@@ -111,6 +118,7 @@
 -(NSMutableArray *) searchFileWithFileName:(NSString *) pFileName forDir:(NSString *) pDir hasChild:(BOOL )pHasChild;
 //寻找一个文件夹下所有文件
 -(NSMutableArray *) searchFileListforDir:(NSString *) pDir;
+-(NSMutableArray *) searchFileListDicforDir:(NSString *) pDir;
 -(NSMutableDictionary *) expectPathStr:(NSString *)pPathStr;
 
 //拷贝整个文件夹（源路径，目标路径，源路径前缀）

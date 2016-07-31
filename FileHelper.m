@@ -129,6 +129,16 @@
 //    NSLog(@"文件读取成功: %@",content);
     return content;
 }
+- (long long) fileSizeAtPath:(NSString*) fileFullPath{
+    
+    NSFileManager* manager = [NSFileManager defaultManager];
+    
+    if ([manager fileExistsAtPath:fileFullPath]){
+        
+        return [[manager attributesOfItemAtPath:fileFullPath error:nil] fileSize];
+    }
+    return 0;
+}
 //写文本到文件
 -(BOOL)writeFileFullPath:pFilePath contentString:(NSString *)pContentString
 {
@@ -149,10 +159,122 @@
 
 }
 //读取文件
--(NSString *) readFileFullPath:pFilePath
+-(NSString *) readFileFullPath:(NSString *)pFilePath
 {
     NSString *content=[NSString stringWithContentsOfFile:pFilePath encoding:NSUTF8StringEncoding error:nil];
     return content;
+}
+//根据编码读取文件
+-(NSString *) readFileFullPath:(NSString *)pFilePath encoding:(NSStringEncoding) pEncoding
+{
+    NSError * err=nil;
+    NSString *content=[NSString stringWithContentsOfFile:pFilePath encoding:pEncoding error:&err];
+    if (err!=nil) {
+        NSLog(@"%@",err);
+    }
+    return content;
+    
+}
+-(NSString *) readFileFullPath:(NSString *)pFilePath usedencoding:(NSStringEncoding) pEncoding
+{
+    NSString *rContent=[NSString new];
+    NSError * err=nil;
+    NSData *_dataBuffer=[[NSData alloc] initWithContentsOfFile:pFilePath];
+    
+    _dataBuffer=[self replaceNoUtf8:_dataBuffer];
+    int len=4;
+    long count=[_dataBuffer length]/len;
+    long rest=[_dataBuffer length]%len;
+    for (int i=0; i<count; i++) {
+        NSData *adata = [_dataBuffer subdataWithRange:NSMakeRange(i*len,len)];
+        NSString *content = [[NSString alloc]initWithData:adata encoding:pEncoding];
+//        NSLog(@"%@,str:%@",adata,content);
+        if (content!=nil) {
+                    rContent=[rContent stringByAppendingString:content];
+        }
+    }
+    //有余数
+    if (rest>0) {
+       NSData *adata = [_dataBuffer subdataWithRange:NSMakeRange(count*len,rest)];
+        NSString *content = [[NSString alloc]initWithData:adata encoding:pEncoding];
+//        NSLog(@"%@,str:%@",adata,content);
+//        rContent=[rContent stringByAppendingString:content];
+        if (content!=nil) {
+            rContent=[rContent stringByAppendingString:content];
+        }
+    //没有余数
+    }else{
+    
+    }
+
+//    NSString *content = [[NSString alloc]initWithData:_dataBuffer encoding:pEncoding];//-2147482062];
+//    NSString *content=[NSString stringWithContentsOfFile:pFilePath usedEncoding:pEncoding error:&err];
+    if (err!=nil) {
+        NSLog(@"%@",err);
+    }
+    return rContent;
+    
+}
+- (NSData *)replaceNoUtf8:(NSData *)data
+{
+    char aa[] = {'A','A','A','A','A','A'};                      //utf8最多6个字符，当前方法未使用
+    NSMutableData *md = [NSMutableData dataWithData:data];
+    int loc = 0;
+    while(loc < [md length])
+    {
+        char buffer;
+        [md getBytes:&buffer range:NSMakeRange(loc, 1)];
+        if((buffer & 0x80) == 0)
+        {
+            loc++;
+            continue;
+        }
+        else if((buffer & 0xE0) == 0xC0)
+        {
+            loc++;
+            [md getBytes:&buffer range:NSMakeRange(loc, 1)];
+            if((buffer & 0xC0) == 0x80)
+            {
+                loc++;
+                continue;
+            }
+            loc--;
+            //非法字符，将这个字符（一个byte）替换为A
+            [md replaceBytesInRange:NSMakeRange(loc, 1) withBytes:aa length:1];
+            loc++;
+            continue;
+        }
+        else if((buffer & 0xF0) == 0xE0)
+        {
+            loc++;
+            [md getBytes:&buffer range:NSMakeRange(loc, 1)];
+            if((buffer & 0xC0) == 0x80)
+            {
+                loc++;
+                [md getBytes:&buffer range:NSMakeRange(loc, 1)];
+                if((buffer & 0xC0) == 0x80)
+                {
+                    loc++;
+                    continue;
+                }
+                loc--;
+            }
+            loc--;
+            //非法字符，将这个字符（一个byte）替换为A
+            [md replaceBytesInRange:NSMakeRange(loc, 1) withBytes:aa length:1];
+            loc++;
+            continue;
+        }
+        else
+        {
+            //非法字符，将这个字符（一个byte）替换为A
+            [md replaceBytesInRange:NSMakeRange(loc, 1) withBytes:aa length:1];
+            loc++;
+            continue;
+        }
+    }
+    
+    return md;
 }
 //获取文件属性
 -(NSDictionary *) getfileAttriutes:(NSString *)pFileShortName folderName:(NSString *)pFolderName {
@@ -707,6 +829,32 @@
     }
     return outfiles;
 }
+-(NSMutableArray *) searchFileListDicforDir:(NSString *) pDir
+{
+    NSFileManager *fileman = [NSFileManager defaultManager];
+    NSString *docdir = [self dirDoc:pDir];//[NSString stringWithFormat: @"%@/Documents", NSHomeDirectory()];
+    NSMutableArray *rDicOutfiles = [[NSMutableArray alloc] init];
+    NSMutableArray *outfiles = [[NSMutableArray alloc] init];
+    NSDirectoryEnumerator *direnum = [fileman enumeratorAtPath:docdir];
+    NSString *file;
+    BOOL isdir;
+    while (file = [direnum nextObject]) {
+        NSString *filepath = [docdir stringByAppendingPathComponent:file];
+        if ([fileman fileExistsAtPath:filepath isDirectory:&isdir] && !isdir) {
+            //本身是根目录
+            if ([@"" isEqualToString:pDir]) {
+                [outfiles addObject:file];
+            }else{
+                [outfiles addObject:[NSString stringWithFormat:@"%@/%@",pDir,file]];
+            }
+        }
+    }
+    for (NSString * fileItem in outfiles) {
+         NSMutableDictionary * tFileInfo=[self expectPathStr:fileItem];
+        [rDicOutfiles addObject:tFileInfo];
+    }
+    return rDicOutfiles;
+}
 //全文件夹拷贝
 -(BOOL) CopyDirectory:(NSString *) pSrcdir desdir:(NSString*) pDesdir
 {
@@ -718,6 +866,7 @@
     NSFileManager * tFileManager=[NSFileManager defaultManager];
     NSError * error;
 //    NSArray * subFilePathsInfo=[tFileManager subpathsAtPath:[pSrcDirPrix stringByAppendingPathComponent:pSrcdir]];
+    NSLog(@"pSrcdir:%@:pDesdir:%@",pSrcdir,pDesdir);
     NSArray * subFileInfo=[tFileManager subpathsOfDirectoryAtPath:[pSrcDirPrix stringByAppendingPathComponent:pSrcdir]  error:&error];
     for (NSString * fileItem in subFileInfo) {
         //需要 根目录
@@ -740,7 +889,8 @@
     @try {
         NSError * error;
         result=[pFileManager copyItemAtPath:pSrcdir toPath:pDesdir error:&error];
-        result=true;
+        NSLog(@"pSrcdir:%@,pDesdir:%@",pSrcdir,pDesdir);
+        //result=true;
     }
     @catch (NSException *exception) {
         NSLog(@"{reason:%@}",exception);
